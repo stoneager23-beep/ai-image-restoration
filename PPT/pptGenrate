@@ -1,0 +1,611 @@
+const pptxgen = require("pptxgenjs");
+const React = require("react");
+const ReactDOMServer = require("react-dom/server");
+const sharp = require("sharp");
+
+// ── Color Palette (Dark Tech / AI theme) ──────────────────────────────────
+const C = {
+bg: "0A0E1A", // near-black deep navy
+bgMid: "0F1629", // card/section backgrounds
+bgCard: "141C35", // slightly lighter card bg
+purple: "7C3AED", // vivid purple accent
+purpleL: "9D6FF5", // lighter purple
+cyan: "06B6D4", // bright cyan
+cyanL: "67E8F9", // light cyan
+white: "FFFFFF",
+offWhite: "E2E8F0",
+muted: "94A3B8",
+gold: "F59E0B",
+green: "10B981",
+};
+
+// ── Icon helper ────────────────────────────────────────────────────────────
+async function icon(IconComp, color="#FFFFFF", size=256) {
+const { FaBrain, FaUpload, FaDownload, FaMagic, FaImage, FaCode, FaLayerGroup,
+FaRocket, FaCheckCircle, FaServer, FaReact, FaCogs, FaDatabase,
+FaBolt, FaEye, FaStar } = require("react-icons/fa");
+const { MdBlurOff, MdHd, MdNoise } = require("react-icons/md");
+
+const svg = ReactDOMServer.renderToStaticMarkup(
+React.createElement(IconComp, { color, size: String(size) })
+);
+const buf = await sharp(Buffer.from(svg)).png().toBuffer();
+return "image/png;base64," + buf.toString("base64");
+}
+
+async function makeIcon(name, color="#FFFFFF") {
+const { FaBrain, FaUpload, FaDownload, FaMagic, FaImage, FaCode, FaLayerGroup,
+FaRocket, FaCheckCircle, FaServer, FaReact, FaCogs, FaDatabase,
+FaBolt, FaEye, FaStar, FaFilter, FaTools, FaFlask, FaNetworkWired } = require("react-icons/fa");
+const { MdBlurOff } = require("react-icons/md");
+const map = {
+brain: FaBrain, upload: FaUpload, download: FaDownload, magic: FaMagic,
+image: FaImage, code: FaCode, layers: FaLayerGroup, rocket: FaRocket,
+check: FaCheckCircle, server: FaServer, react: FaReact, cogs: FaCogs,
+database: FaDatabase, bolt: FaBolt, eye: FaEye, star: FaStar,
+filter: FaFilter, tools: FaTools, flask: FaFlask, network: FaNetworkWired,
+blur: MdBlurOff,
+};
+return await icon(map[name], color);
+}
+
+// ── Reusable slide helpers ────────────────────────────────────────────────
+function addBg(slide, pres) {
+slide.background = { color: C.bg };
+}
+
+// Glowing accent shape
+function accent(slide, pres, x, y, w, h, col=C.purple) {
+slide.addShape(pres.shapes.RECTANGLE, {
+x, y, w, h, fill: { color: col }, line: { color: col, width: 0 }
+});
+}
+
+// Card shape
+function card(slide, pres, x, y, w, h, fill=C.bgCard) {
+slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+x, y, w, h,
+fill: { color: fill },
+line: { color: C.purple, width: 1 },
+rectRadius: 0.08,
+shadow: { type: "outer", color: "000000", blur: 12, offset: 3, angle: 135, opacity: 0.4 }
+});
+}
+
+// Section title strip
+function sectionTitle(slide, pres, text, sub="") {
+// Left accent bar
+slide.addShape(pres.shapes.RECTANGLE, {
+x: 0.4, y: 0.25, w: 0.07, h: 0.55, fill: { color: C.cyan }, line: { color: C.cyan, width: 0 }
+});
+slide.addText(text, {
+x: 0.6, y: 0.18, w: 9, h: 0.5,
+fontFace: "Arial Black", fontSize: 26, color: C.white, bold: true, margin: 0
+});
+if (sub) slide.addText(sub, {
+x: 0.6, y: 0.7, w: 9, h: 0.28,
+fontFace: "Calibri", fontSize: 13, color: C.muted, margin: 0
+});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+async function build() {
+const pres = new pptxgen();
+pres.layout = "LAYOUT_16x9";
+pres.title = "AI-Based Image Restoration";
+
+// ── SLIDE 1 — Title / Cover ─────────────────────────────────────────────
+{
+const s = pres.addSlide();
+s.background = { color: C.bg };
+
+// Large purple glow blob (left)
+s.addShape(pres.shapes.OVAL, { x: -1.2, y: -0.8, w: 4.5, h: 4.5,
+fill: { color: C.purple, transparency: 80 }, line: { color: C.purple, width: 0 } });
+// Cyan glow blob (right)
+s.addShape(pres.shapes.OVAL, { x: 7.5, y: 2.5, w: 4, h: 4,
+fill: { color: C.cyan, transparency: 82 }, line: { color: C.cyan, width: 0 } });
+
+// Course & teacher chip
+s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+x: 0.5, y: 0.35, w: 3.5, h: 0.38, fill: { color: C.purple, transparency: 30 },
+line: { color: C.purpleL, width: 1 }, rectRadius: 0.05
+});
+s.addText("Digital Image Processing | Sir Rana Adeel", {
+x: 0.55, y: 0.36, w: 3.4, h: 0.36,
+fontFace: "Calibri", fontSize: 11, color: C.cyanL, bold: true, margin: 0
+});
+
+// Main title
+s.addText("AI-Based Image", {
+x: 0.5, y: 0.9, w: 9.2, h: 0.9,
+fontFace: "Arial Black", fontSize: 48, color: C.white, bold: true, margin: 0
+});
+s.addText("Restoration", {
+x: 0.5, y: 1.75, w: 9.2, h: 0.9,
+fontFace: "Arial Black", fontSize: 48, color: C.cyan, bold: true, margin: 0
+});
+s.addText("Web Application", {
+x: 0.5, y: 2.6, w: 9.2, h: 0.45,
+fontFace: "Calibri", fontSize: 22, color: C.purpleL, italic: true, margin: 0
+});
+
+// Divider
+s.addShape(pres.shapes.RECTANGLE, {
+x: 0.5, y: 3.15, w: 5.5, h: 0.03, fill: { color: C.purple }, line: { color: C.purple, width: 0 }
+});
+
+// Group members card
+s.addShape(pres.shapes.RECTANGLE, {
+x: 0.5, y: 3.35, w: 5.5, h: 1.85,
+fill: { color: C.bgCard }, line: { color: C.purple, width: 1 },
+shadow: { type: "outer", color: "000000", blur: 15, offset: 4, angle: 135, opacity: 0.5 }
+});
+s.addText("GROUP MEMBERS", {
+x: 0.65, y: 3.42, w: 5.2, h: 0.28,
+fontFace: "Arial Black", fontSize: 11, color: C.cyan, bold: true,
+charSpacing: 3, margin: 0
+});
+
+const members = [
+{ name: "Husnain Faisal", roll: "23-ST-042" },
+{ name: "Zeeshan Atif", roll: "23-ST-002" },
+{ name: "Rayyan Idrees", roll: "23-ST-045" },
+{ name: "Faseeh ul Hassan", roll: "23-ST-019" },
+];
+members.forEach((m, i) => {
+const row = Math.floor(i / 2), col = i % 2;
+const mx = 0.65 + col * 2.65, my = 3.75 + row * 0.42;
+s.addText([
+{ text: m.name, options: { bold: true, color: C.offWhite } },
+{ text: ` (${m.roll})`, options: { color: C.muted } }
+], { x: mx, y: my, w: 2.6, h: 0.3, fontFace: "Calibri", fontSize: 11.5, margin: 0 });
+});
+
+// Date
+s.addText("April 2026", {
+x: 0.65, y: 5.15, w: 5, h: 0.25,
+fontFace: "Calibri", fontSize: 11, color: C.muted, margin: 0
+});
+
+// Right side — tech stack pills
+const techs = ["React 19", "Python Flask", "OpenCV", "PyTorch", "DnCNN"];
+techs.forEach((t, i) => {
+s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+x: 6.7, y: 0.9 + i * 0.78, w: 2.8, h: 0.46,
+fill: { color: C.bgMid }, line: { color: i % 2 === 0 ? C.purple : C.cyan, width: 1 },
+rectRadius: 0.08
+});
+s.addText(t, {
+x: 6.7, y: 0.9 + i * 0.78, w: 2.8, h: 0.46,
+fontFace: "Calibri", fontSize: 14, color: i % 2 === 0 ? C.purpleL : C.cyanL,
+bold: true, align: "center", valign: "middle"
+});
+});
+
+const brainIcon = await makeIcon("brain", "#" + C.cyan);
+s.addImage({ data: brainIcon, x: 7.6, y: 4.5, w: 0.55, h: 0.55 });
+s.addText("Full-Stack AI Application", {
+x: 6.65, y: 4.52, w: 1.0, h: 0.5,
+fontFace: "Calibri", fontSize: 9.5, color: C.muted, align: "right", margin: 0
+});
+}
+
+// ── SLIDE 2 — Overview ──────────────────────────────────────────────────
+{
+const s = pres.addSlide();
+s.background = { color: C.bg };
+
+sectionTitle(s, pres, "Project Overview", "What we built and why it matters");
+
+const boxes = [
+{ title: "Problem", body: "Degraded images from noise, blur & low resolution are everywhere — but no unified web tool existed for multi-technique restoration.", icon: "image", col: C.purple },
+{ title: "Solution", body: "A full-stack web app combining classical CV algorithms + DnCNN deep learning into one intuitive interface with live before/after comparison.", icon: "magic", col: C.cyan },
+{ title: "Impact", body: "Users can restore photos instantly via browser — no install needed. Supports PNG, JPG, BMP, TIFF, WebP up to 16 MB.", icon: "rocket", col: C.gold },
+];
+
+for (let i = 0; i < 3; i++) { const b=boxes[i]; const x=0.38 + i * 3.12; card(s, pres, x, 1.05, 2.95, 4.1, C.bgCard); 
+    // top color bar
+    s.addShape(pres.shapes.RECTANGLE, { x, y: 1.05, w: 2.95, h: 0.1, fill: { color: b.col }, line: {
+    color: b.col, width: 0 } }); const ico=await makeIcon(b.icon, "#" + b.col); s.addImage({ data: ico, x: x + 0.22, y:
+    1.28, w: 0.55, h: 0.55 }); s.addText(b.title, { x: x + 0.1, y: 1.92, w: 2.7, h: 0.38, fontFace: "Arial Black" ,
+    fontSize: 17, color: C.white, bold: true, margin: 0 }); s.addText(b.body, { x: x + 0.12, y: 2.33, w: 2.72, h: 2.6,
+    fontFace: "Calibri" , fontSize: 12.5, color: C.offWhite, margin: 0 }); } 
+    // Bottom stat bar 
+    const stats=[["3", "Restoration Modes" ], ["17", "DnCNN Layers" ], ["5", "Image Formats" ], ["3", "Tech Layers" ]];
+    stats.forEach((st, i)=> {
+    const x = 0.5 + i * 2.35;
+    s.addText(st[0], {
+    x, y: 5.05, w: 2.2, h: 0.4,
+    fontFace: "Arial Black", fontSize: 28, color: C.cyan, bold: true, align: "center", margin: 0
+    });
+    s.addText(st[1], {
+    x, y: 5.38, w: 2.2, h: 0.2,
+    fontFace: "Calibri", fontSize: 10, color: C.muted, align: "center", margin: 0
+    });
+    });
+    }
+
+    // ── SLIDE 3 — System Architecture ──────────────────────────────────────
+    {
+    const s = pres.addSlide();
+    s.background = { color: C.bg };
+    sectionTitle(s, pres, "System Architecture", "Three-tier client-server design");
+
+    const layers = [
+    { label: "FRONTEND", tech: "React 19 + Vite", desc: "Upload • Comparison Slider • Results Display", icon: "react",
+    col: C.cyan },
+    { label: "BACKEND API", tech: "Python Flask + CORS", desc: "REST Endpoints • File Handling • Request Routing", icon:
+    "server", col: C.purple },
+    { label: "PROCESSING", tech: "OpenCV + PyTorch", desc: "Denoise • Deblur • Super Resolution • DnCNN", icon: "cogs",
+    col: C.gold },
+    ];
+
+    for (let i = 0; i < 3; i++) { const L=layers[i]; const y=1.1 + i * 1.38; 
+        // Full-width card
+        s.addShape(pres.shapes.RECTANGLE, { x: 0.38, y, w: 9.25, h: 1.18, fill: { color: C.bgCard }, line: { color:
+        L.col, width: 1 }, shadow: { type: "outer" , color: "000000" , blur: 8, offset: 2, angle: 135, opacity: 0.4 }
+        }); 
+        // Left accent 
+        s.addShape(pres.shapes.RECTANGLE, { x: 0.38, y, w: 0.07, h: 1.18, fill: { color: L.col },
+        line: { color: L.col, width: 0 } }); const ico=await makeIcon(L.icon, "#" + L.col); s.addImage({ data: ico, x:
+        0.65, y: y + 0.28, w: 0.55, h: 0.55 }); s.addText(L.label, { x: 1.38, y: y + 0.08, w: 2.4, h: 0.32,
+        fontFace: "Arial Black" , fontSize: 13, color: L.col, bold: true, charSpacing: 2, margin: 0 });
+        s.addText(L.tech, { x: 1.38, y: y + 0.42, w: 2.5, h: 0.28, fontFace: "Calibri" , fontSize: 14, color: C.white,
+        bold: true, margin: 0 }); s.addText(L.desc, { x: 1.38, y: y + 0.73, w: 7.8, h: 0.3, fontFace: "Calibri" ,
+        fontSize: 11.5, color: C.muted, margin: 0 }); 
+        // Arrow between layers 
+        if (i < 2) {
+        s.addShape(pres.shapes.RECTANGLE, { x: 4.7, y: y + 1.18, w: 0.6, h: 0.18, fill: { color: C.bgMid }, line: {
+        color: C.bgMid, width: 0 } }); s.addText("▼", { x: 4.65, y: y + 1.17, w: 0.7, h: 0.22, fontFace: "Calibri" ,
+        fontSize: 12, color: C.muted, align: "center" , margin: 0 }); } } 
+        // Port note 
+        s.addText("Vite dev server proxies /api → Flask :5000 | Flask imports processing module directly as Python package", { x: 0.38, y: 5.15, w:
+        9.25, h: 0.27, fontFace: "Calibri" , fontSize: 10, color: C.muted, align: "center" , italic: true, margin: 0 });
+        } // ── SLIDE 4 — Three Restoration Methods ──────────────────────────────── 
+        { const s=pres.addSlide();
+        s.background={ color: C.bg }; sectionTitle(s, pres, "Restoration Techniques"
+        , "Three core capabilities of the system" ); const methods=[ { title: "Noise Removal" , steps: ["Stage 1: Median Filter (3×3) — removes salt-and-pepper noise", "Stage 2: Non-Local Means Denoising (h=10, window 7×7, search 21×21)"
+        , "Patch-based similarity preserves textures & fine details" ], time: "~2.0s" , quality: "High" , col: C.cyan,
+        icon: "filter" }, { title: "Image Deblurring" , steps: ["Step 1: Horizontal motion blur kernel (5×5)", "Step 2: Wiener Deconvolution in frequency domain via FFT"
+        , "Step 3: Unsharp masking (σ=1.0, strength=1.5) sharpens edges" ], time: "~1.0s" , quality: "Moderate–High" ,
+        col: C.purple, icon: "blur" }, { title: "Super Resolution" , steps: ["Bicubic Interpolation (2× upscale)", "Bilateral Filtering — edge-preserving smooth (d=9)"
+        , "Unsharp Masking + Detail Enhancement (σ_s=10, σ_r=0.15)" ], time: "~1.2s" , quality: "Moderate–High" , col:
+        C.gold, icon: "eye" }, ]; for (let i=0; i < 3; i++) { const M=methods[i]; const x=0.38 + i * 3.12; card(s, pres,
+        x, 1.05, 2.95, 4.22, C.bgCard); s.addShape(pres.shapes.RECTANGLE, { x, y: 1.05, w: 2.95, h: 0.09, fill: { color:
+        M.col }, line: { color: M.col, width: 0 } }); const ico=await makeIcon(M.icon==="blur" ? "blur" : M.icon, "#" +
+        M.col); s.addImage({ data: ico, x: x + 0.2, y: 1.22, w: 0.5, h: 0.5 }); s.addText(M.title, { x: x + 0.1, y: 1.8,
+        w: 2.75, h: 0.35, fontFace: "Arial Black" , fontSize: 14.5, color: C.white, bold: true, margin: 0 });
+        M.steps.forEach((step, j)=> {
+        s.addText([{ text: "› ", options: { color: M.col, bold: true } }, { text: step, options: { color: C.offWhite }
+        }], {
+        x: x + 0.12, y: 2.2 + j * 0.55, w: 2.72, h: 0.52,
+        fontFace: "Calibri", fontSize: 11, margin: 0
+        });
+        });
+
+        // Metrics chips
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: x + 0.12, y: 4.5, w: 1.1, h: 0.35,
+        fill: { color: C.bgMid }, line: { color: M.col, width: 1 }, rectRadius: 0.06
+        });
+        s.addText("⏱ " + M.time, {
+        x: x + 0.12, y: 4.5, w: 1.1, h: 0.35,
+        fontFace: "Calibri", fontSize: 10, color: M.col, align: "center", valign: "middle", bold: true
+        });
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: x + 1.32, y: 4.5, w: 1.52, h: 0.35,
+        fill: { color: C.bgMid }, line: { color: M.col, width: 1 }, rectRadius: 0.06
+        });
+        s.addText("✓ " + M.quality, {
+        x: x + 1.32, y: 4.5, w: 1.52, h: 0.35,
+        fontFace: "Calibri", fontSize: 10, color: M.col, align: "center", valign: "middle", bold: true
+        });
+        }
+        }
+
+        // ── SLIDE 5 — DnCNN Deep Learning ──────────────────────────────────────
+        {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        sectionTitle(s, pres, "DnCNN Deep Learning Model", "Residual learning for AI-powered denoising");
+
+        // Architecture diagram — 17 layers visual
+        s.addText("17-Layer Architecture (PyTorch)", {
+        x: 0.5, y: 0.88, w: 9, h: 0.3,
+        fontFace: "Calibri", fontSize: 13, color: C.muted, margin: 0
+        });
+
+        // Input block
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: 0.4, y: 1.3, w: 1.4, h: 0.7,
+        fill: { color: C.bgMid }, line: { color: C.cyan, width: 2 }, rectRadius: 0.06
+        });
+        s.addText(["Noisy\nInput"].join(""), {
+        x: 0.4, y: 1.3, w: 1.4, h: 0.7,
+        fontFace: "Calibri", fontSize: 10.5, color: C.cyanL, align: "center", valign: "middle", bold: true
+        });
+
+        // Layer 1
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: 2.05, y: 1.3, w: 1.7, h: 0.7,
+        fill: { color: C.bgMid }, line: { color: C.purple, width: 2 }, rectRadius: 0.06
+        });
+        s.addText("Layer 1\nConv + ReLU", {
+        x: 2.05, y: 1.3, w: 1.7, h: 0.7,
+        fontFace: "Calibri", fontSize: 9.5, color: C.purpleL, align: "center", valign: "middle"
+        });
+
+        // Middle layers
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: 4.0, y: 1.3, w: 2.0, h: 0.7,
+        fill: { color: C.bgMid }, line: { color: C.purpleL, width: 2 }, rectRadius: 0.06
+        });
+        s.addText("Layers 2–16\nConv + BN + ReLU (×15)", {
+        x: 4.0, y: 1.3, w: 2.0, h: 0.7,
+        fontFace: "Calibri", fontSize: 9.5, color: C.purpleL, align: "center", valign: "middle"
+        });
+
+        // Final layer
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: 6.25, y: 1.3, w: 1.5, h: 0.7,
+        fill: { color: C.bgMid }, line: { color: C.gold, width: 2 }, rectRadius: 0.06
+        });
+        s.addText("Layer 17\nConv Output", {
+        x: 6.25, y: 1.3, w: 1.5, h: 0.7,
+        fontFace: "Calibri", fontSize: 9.5, color: C.gold, align: "center", valign: "middle"
+        });
+
+        // Output
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: 8.0, y: 1.3, w: 1.55, h: 0.7,
+        fill: { color: C.bgMid }, line: { color: C.green, width: 2 }, rectRadius: 0.06
+        });
+        s.addText("Clean\nOutput", {
+        x: 8.0, y: 1.3, w: 1.55, h: 0.7,
+        fontFace: "Calibri", fontSize: 10.5, color: C.green, align: "center", valign: "middle", bold: true
+        });
+
+        // Arrows
+        [[1.8, 2.04], [3.75, 3.99], [6.0, 6.24], [7.75, 7.99]].forEach(([x1, x2]) => {
+        s.addShape(pres.shapes.RECTANGLE, { x: x1, y: 1.61, w: x2 - x1, h: 0.04,
+        fill: { color: C.muted }, line: { color: C.muted, width: 0 } });
+        s.addText("▶", { x: x2 - 0.08, y: 1.55, w: 0.18, h: 0.18,
+        fontFace: "Calibri", fontSize: 9, color: C.muted, margin: 0 });
+        });
+
+        // Residual learning formula
+        s.addShape(pres.shapes.RECTANGLE, {
+        x: 0.4, y: 2.22, w: 9.15, h: 0.62,
+        fill: { color: C.bgMid }, line: { color: C.purple, width: 1 }
+        });
+        s.addText([
+        { text: "Residual Learning: ", options: { color: C.muted } },
+        { text: "x_clean = x_noisy − f(x_noisy)", options: { color: C.cyanL, bold: true } },
+        { text: " → Model predicts NOISE, not the clean image directly", options: { color: C.offWhite } }
+        ], { x: 0.55, y: 2.28, w: 8.9, h: 0.45, fontFace: "Calibri", fontSize: 13.5, valign: "middle", margin: 0 });
+
+        // Key facts cards
+        const facts = [
+        { title: "Input Layer", body: "Conv2d(1, 64, 3) + ReLU\n1 channel → 64 feature maps" },
+        { title: "Hidden Layers", body: "Conv2d(64, 64, 3) + BatchNorm2d + ReLU\nRepeated ×15 for deep feature extraction" },
+        { title: "Output Layer", body: "Conv2d(64, 1, 3)\n64 feature maps → noise residual" },
+        { title: "Fallback", body: "If dncnn.pth weights absent, system gracefully falls back to NL-Means classical pipeline" },
+        ];
+        facts.forEach((f, i) => {
+        const x = 0.4 + i * 2.36;
+        card(s, pres, x, 3.08, 2.2, 2.3, C.bgCard);
+        s.addText(f.title, {
+        x: x + 0.12, y: 3.18, w: 2.0, h: 0.3,
+        fontFace: "Arial Black", fontSize: 12, color: C.cyan, bold: true, margin: 0
+        });
+        s.addText(f.body, {
+        x: x + 0.12, y: 3.52, w: 2.0, h: 1.7,
+        fontFace: "Calibri", fontSize: 11, color: C.offWhite, margin: 0
+        });
+        });
+        }
+
+        // ── SLIDE 6 — Implementation / Tech Stack ──────────────────────────────
+        {
+        const s = pres.addSlide();
+        s.background = { color: C.bg };
+        sectionTitle(s, pres, "Implementation Details", "Full-stack engineering breakdown");
+
+        // Left column — API endpoints table
+        card(s, pres, 0.38, 1.08, 4.6, 4.3, C.bgCard);
+        s.addText("REST API ENDPOINTS", {
+        x: 0.55, y: 1.18, w: 4.2, h: 0.3,
+        fontFace: "Arial Black", fontSize: 12, color: C.cyan, charSpacing: 2, margin: 0
+        });
+
+        const endpoints = [
+        { method: "GET", path: "/api/health", desc: "Health check" },
+        { method: "POST", path: "/api/restore", desc: "Upload + process" },
+        { method: "GET", path: "/api/image/:id/input", desc: "Original image" },
+        { method: "GET", path: "/api/image/:id/output", desc: "Restored image" },
+        ];
+        const mColors = { GET: C.green, POST: C.gold };
+        endpoints.forEach((ep, i) => {
+        const y = 1.62 + i * 0.82;
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: 0.5, y, w: 4.35, h: 0.65, fill: { color: C.bgMid },
+        line: { color: C.bgMid, width: 0 }, rectRadius: 0.05
+        });
+        // Method badge
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        x: 0.58, y: y + 0.15, w: 0.7, h: 0.32,
+        fill: { color: mColors[ep.method] || C.cyan }, line: { color: mColors[ep.method] || C.cyan, width: 0 },
+        rectRadius: 0.04
+        });
+        s.addText(ep.method, {
+        x: 0.58, y: y + 0.15, w: 0.7, h: 0.32,
+        fontFace: "Calibri", fontSize: 10, color: C.bg, bold: true, align: "center", valign: "middle"
+        });
+        s.addText(ep.path, {
+        x: 1.35, y: y + 0.04, w: 2.6, h: 0.3,
+        fontFace: "Calibri", fontSize: 11.5, color: C.purpleL, bold: true, margin: 0
+        });
+        s.addText(ep.desc, {
+        x: 1.35, y: y + 0.34, w: 2.6, h: 0.22,
+        fontFace: "Calibri", fontSize: 10, color: C.muted, margin: 0
+        });
+        });
+
+        // Right column — Features
+        card(s, pres, 5.22, 1.08, 4.4, 4.3, C.bgCard);
+        s.addText("FRONTEND FEATURES", {
+        x: 5.38, y: 1.18, w: 4.0, h: 0.3,
+        fontFace: "Arial Black", fontSize: 12, color: C.purpleL, charSpacing: 2, margin: 0
+        });
+
+        const features = [
+        { icon: "upload", title: "Drag & Drop Upload", desc: "PNG/JPG/BMP/TIFF/WebP • Max 16 MB", col: C.cyan },
+        { icon: "eye", title: "Before/After Slider", desc: "CSS clip-path + pointer events for drag comparison", col: C.purple },
+        { icon: "bolt", title: "Processing Metrics", desc: "Real-time time, method used, and type display", col: C.gold },
+        { icon: "download", title: "Image Download", desc: "One-click export of the restored PNG", col: C.green },
+        ];
+
+        for (let i = 0; i < features.length; i++) { const f=features[i]; const y=1.62 + i * 0.82;
+            s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 5.3, y, w: 4.2, h: 0.65, fill: { color: C.bgMid }, line: {
+            color: C.bgMid, width: 0 }, rectRadius: 0.05 }); const ico=await makeIcon(f.icon, "#" + f.col); s.addImage({
+            data: ico, x: 5.42, y: y + 0.14, w: 0.35, h: 0.35 }); s.addText(f.title, { x: 5.88, y: y + 0.05, w: 3.5, h:
+            0.28, fontFace: "Calibri" , fontSize: 12, color: C.white, bold: true, margin: 0 }); s.addText(f.desc, { x:
+            5.88, y: y + 0.33, w: 3.5, h: 0.25, fontFace: "Calibri" , fontSize: 10, color: C.muted, margin: 0 }); } } 
+            // ── SLIDE 7 — Results & Performance ──────────────────────────────────── 
+            { const s=pres.addSlide();
+            s.background={ color: C.bg }; sectionTitle(s, pres, "Results & Performance", "Benchmarks across all three restoration types" ); 
+            // Performance chart (native bar)
+            s.addChart(pres.charts.BAR, [ { name: "Avg. Processing Time (s)" , labels: ["Noise Removal", "Deblurring", "Super Resolution" ], values: [2.0, 1.0, 1.2] } ], { x: 0.38, y: 1.0, w: 5.0, h: 3.2, barDir: "col" ,
+            chartColors: [C.cyan, C.purple, C.gold], chartArea: { fill: { color: C.bgCard }, roundedCorners: false },
+            plotArea: { fill: { color: C.bgCard } }, catAxisLabelColor: C.offWhite, valAxisLabelColor: C.muted,
+            valGridLine: { color: "1E293B" , size: 0.5 }, catGridLine: { style: "none" }, showValue: true,
+            dataLabelColor: C.white, showLegend: true, legendColor: C.offWhite, legendPos: "b" , valAxisMinVal: 0,
+            valAxisMaxVal: 3, }); 
+            // Quality summary cards 
+            const results=[ { type: "Noise Removal" ,
+            method: "NL-Means + Median" , time: "~2.0s" , quality: "High" , col: C.cyan }, { type: "Deblurring" ,
+            method: "Wiener + Unsharp" , time: "~1.0s" , quality: "Mod–High" , col: C.purple }, { type: "Super-Res" ,
+            method: "Enhanced Bicubic" , time: "~1.2s" , quality: "Mod–High" , col: C.gold }, ]; results.forEach((r,
+            i)=> {
+            const y = 1.0 + i * 1.4;
+            card(s, pres, 5.62, y, 4.0, 1.22, C.bgCard);
+            s.addShape(pres.shapes.RECTANGLE, {
+            x: 5.62, y, w: 0.07, h: 1.22, fill: { color: r.col }, line: { color: r.col, width: 0 }
+            });
+            s.addText(r.type, {
+            x: 5.85, y: y + 0.1, w: 3.6, h: 0.3,
+            fontFace: "Arial Black", fontSize: 13.5, color: C.white, bold: true, margin: 0
+            });
+            s.addText(r.method, {
+            x: 5.85, y: y + 0.43, w: 3.6, h: 0.25,
+            fontFace: "Calibri", fontSize: 11.5, color: C.muted, margin: 0
+            });
+            s.addText(r.time, {
+            x: 5.85, y: y + 0.72, w: 1.3, h: 0.28,
+            fontFace: "Calibri", fontSize: 12, color: r.col, bold: true, margin: 0
+            });
+            // Quality pill
+            s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+            x: 7.5, y: y + 0.72, w: 1.9, h: 0.28,
+            fill: { color: r.col, transparency: 70 }, line: { color: r.col, width: 1 }, rectRadius: 0.05
+            });
+            s.addText("✓ " + r.quality, {
+            x: 7.5, y: y + 0.72, w: 1.9, h: 0.28,
+            fontFace: "Calibri", fontSize: 10, color: r.col, bold: true, align: "center", valign: "middle"
+            });
+            });
+
+            // Bottom note
+            s.addText("All timings measured on a 400×300 px image. Super resolution output is 2× the input dimensions.",
+            {
+            x: 0.38, y: 5.22, w: 9.25, h: 0.25,
+            fontFace: "Calibri", fontSize: 9.5, color: C.muted, align: "center", italic: true, margin: 0
+            });
+            }
+
+            // ── SLIDE 8 — Future Work & Conclusion ─────────────────────────────────
+            {
+            const s = pres.addSlide();
+            s.background = { color: C.bg };
+
+            // Glow blobs
+            s.addShape(pres.shapes.OVAL, { x: 7.5, y: -1, w: 5, h: 5,
+            fill: { color: C.purple, transparency: 85 }, line: { color: C.purple, width: 0 } });
+            s.addShape(pres.shapes.OVAL, { x: -1, y: 3, w: 4, h: 4,
+            fill: { color: C.cyan, transparency: 85 }, line: { color: C.cyan, width: 0 } });
+
+            sectionTitle(s, pres, "Conclusion & Future Work");
+
+            // Conclusion box
+            card(s, pres, 0.38, 1.0, 5.45, 2.6, C.bgCard);
+            s.addText("CONCLUSION", {
+            x: 0.55, y: 1.1, w: 5.0, h: 0.3,
+            fontFace: "Arial Black", fontSize: 12, color: C.cyan, charSpacing: 2, margin: 0
+            });
+            const conclusions = [
+            "Two-stage NL-Means + Median pipeline for effective denoising",
+            "Frequency-domain Wiener deconvolution for motion deblurring",
+            "Enhanced bicubic 2× super resolution with post-processing",
+            "17-layer DnCNN architecture integrated in PyTorch",
+            "Modern React UI with interactive comparison slider",
+            "Clean REST API with proper error handling & file management",
+            ];
+            conclusions.forEach((c, i) => {
+            s.addText([
+            { text: "✓ ", options: { color: C.green, bold: true } },
+            { text: c, options: { color: C.offWhite } }
+            ], {
+            x: 0.55, y: 1.48 + i * 0.34, w: 5.1, h: 0.3,
+            fontFace: "Calibri", fontSize: 11.5, margin: 0
+            });
+            });
+
+            // Future Work box
+            card(s, pres, 6.1, 1.0, 3.52, 2.6, C.bgCard);
+            s.addText("FUTURE WORK", {
+            x: 6.25, y: 1.1, w: 3.2, h: 0.3,
+            fontFace: "Arial Black", fontSize: 12, color: C.purpleL, charSpacing: 2, margin: 0
+            });
+            const future = [
+            "Train DnCNN on BSD68 dataset",
+            "Integrate ESRGAN / Real-ESRGAN",
+            "Blind deblurring (auto kernel)",
+            "Batch processing for multi-image",
+            "Cloud deploy (AWS / Docker)",
+            "PSNR + SSIM quality metrics",
+            "Frame-by-frame video restoration",
+            ];
+            future.forEach((f, i) => {
+            s.addText([
+            { text: "→ ", options: { color: C.purpleL, bold: true } },
+            { text: f, options: { color: C.offWhite } }
+            ], {
+            x: 6.25, y: 1.48 + i * 0.3, w: 3.2, h: 0.28,
+            fontFace: "Calibri", fontSize: 11, margin: 0
+            });
+            });
+
+            // Thank you banner
+            s.addShape(pres.shapes.RECTANGLE, {
+            x: 0.38, y: 3.8, w: 9.25, h: 1.5,
+            fill: { color: C.bgMid }, line: { color: C.purple, width: 1 }
+            });
+            s.addShape(pres.shapes.RECTANGLE, {
+            x: 0.38, y: 3.8, w: 9.25, h: 0.07, fill: { color: C.purple }, line: { color: C.purple, width: 0 }
+            });
+            s.addText("Thank You!", {
+            x: 0.38, y: 3.88, w: 9.25, h: 0.7,
+            fontFace: "Arial Black", fontSize: 30, color: C.white, bold: true, align: "center", margin: 0
+            });
+            s.addText("Questions & Feedback Welcome | Built with React · Flask · OpenCV · PyTorch", {
+            x: 0.38, y: 4.6, w: 9.25, h: 0.3,
+            fontFace: "Calibri", fontSize: 12, color: C.muted, align: "center", italic: true, margin: 0
+            });
+            }
+
+            await pres.writeFile({ fileName: "DIP_Final_Presentation.pptx" });
+            console.log("✅ Presentation created!");
+            }
+
+            build().catch(console.error);
